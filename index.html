@@ -28,6 +28,7 @@
                 2026年 
                 <span id="academicYear"></span>
             </p>
+            <!-- Add other relevant information -->
         </div>
     </div>
 
@@ -42,7 +43,7 @@
         讀回出席紀錄
         </button>--> 
         <label id="googleNote">
-            開始點名前請先<span>"登入認證"</span>=>“讀回Google”<br>
+            點名時請先<span>"登入認證"</span>=>“讀回Google”<br>
             點名完成後再<span>"登入認證"</span>=>“儲存Google”
           </label>
           <button id="authorize_button">登入認證</button>
@@ -78,13 +79,10 @@
                  ..👤 加入新朋友
             </button>
                         <h4>3統計</h4>
-            <button id="submitAtt1" onclick="submitAttendance()">
+            <button id="submitAtt1" onclick="submitAttendance();histRate()">
                  📊 送出統計
             </button>
-			<button onclick="histRate()">
-                 統計圖
-            </button>
-             
+			             
             <label for="classSelector">日期和堂次記錄:</label>
             <select id="classSelector" required 
                 onchange="showStudentsList()">
@@ -171,6 +169,9 @@
                     出席率: 
                     <span id="attendanceRate"></span>
                 </p>
+                <button onclick="histRate()">
+                 統計圖
+                </button>
         </div>
     </div>
 
