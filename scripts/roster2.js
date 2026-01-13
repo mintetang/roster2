@@ -728,9 +728,9 @@ function getSavedColor(selectedClass, rollNumber) {
 
 function cleanSelectedClass()
     {
-    const reCheck = prompt('！！！請輸入"27299580"來確認刪除目前的日期出席記錄，確認後"無法回復"！！！');
+    const reCheck = prompt('！！！請輸入"YES"來確認刪除目前的日期出席記錄，確認後"無法回復"！！！');
     //console.log(reCheck); 
-    if (reCheck === '27299580') {
+    if (reCheck === 'YES') {
   // Perform actions for cancellation, e.g., stop further processing
 
     const classSelector = 
@@ -764,7 +764,7 @@ function cleanSelectedClass()
     newatt.splice(indexToDel, 1);
     localStorage.setItem('attHis', 
           JSON.stringify(newatt));
-
+    alert(`${selectedClass}已刪除！`);
     //refresh
     location.reload();
 	//localStorage.clear();
@@ -881,38 +881,57 @@ function sleep(ms) {
 
 // for Google Output to drive
 
+
+// ===== Google config =====
 const CLIENT_ID =
   "273160542369-ttt03gmv0iio70vek53dqrqcfs9rt1a6.apps.googleusercontent.com";
-const API_KEY = "AIzaSyDZkfoh01VUEwX_uK3xn3jVvMLssdPCqoo";
+
+const API_KEY =
+  "AIzaSyDZkfoh01VUEwX_uK3xn3jVvMLssdPCqoo";
+
 const SCOPES = "https://www.googleapis.com/auth/drive.file";
 const DISCOVERY_DOC =
   "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest";
 
+// ===== State =====
 let tokenClient;
 let gapiInited = false;
 let gisInited = false;
+initGoogleDriveAuth();
 
-document.getElementById("authorize_button").onclick = handleAuthClick;
-//document.getElementById("upload_button").onclick = uploadToDrive;
+function initGoogleDriveAuth() {
+  if (!window.gapi || !window.google?.accounts) {
+    setTimeout(initGoogleDriveAuth, 100);
+    return;
+  }
 
-// Load GAPI client
-gapi.load("client", async () => {
-  await gapi.client.init({ apiKey: API_KEY, discoveryDocs: [DISCOVERY_DOC] });
-  gapiInited = true;
-  maybeEnableButtons();
-});
+  const authBtn = document.getElementById("authorize_button");
+  if (authBtn) {
+    authBtn.onclick = handleAuthClick;
+  }
 
-// Initialize Google Identity Services
-window.onload = () => {
+  gapi.load("client", async () => {
+    await gapi.client.init({
+      apiKey: API_KEY,
+      discoveryDocs: [DISCOVERY_DOC],
+    });
+    gapiInited = true;
+    maybeEnableButtons();
+  });
+
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPES,
-    callback: "", // Set later
+    callback: "", // defined later"",
   });
+
   gisInited = true;
   maybeEnableButtons();
-};
-
+}
+document.getElementById("authorize_button")
+  .addEventListener("click", function () {
+    this.classList.toggle("clicked");
+  });
 //make button dimmed or blink after clicked
 /*document
   .getElementById("authorize_button")
@@ -938,12 +957,16 @@ function maybeEnableButtons() {
 }
 
 function handleAuthClick() {
-  tokenClient.callback = async (resp) => {
-    if (resp.error) throw resp;
-    document.getElementById("upload_button").disabled = false;
-  };
-  tokenClient.requestAccessToken({ prompt: "consent" });
-}
+    tokenClient.requestAccessToken({ prompt: "consent" });
+    }
+
+    // Try silent auth once user interacts
+    document.addEventListener("click", () => {
+    tokenClient.requestAccessToken({ prompt: "" });
+    }, { once: true });
+
+// Fallback button
+document.getElementById("authorize_button").onclick = handleAuthClick;
 
 //declaire fileId to set in upload and use in googleIn
 
