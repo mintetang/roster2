@@ -153,50 +153,63 @@ function addStudent() {
     
 }
 
-function std(a, b) {
-    const newStudentName = a;
-    const newStudentRoll = b;
+function std(name, rollNumber) {
+    const classSelector =
+        document.getElementById('classSelector');
+    const selectedClass =
+        classSelector.options[classSelector.selectedIndex].value;
 
-    const classSelector = document.getElementById('classSelector');
-    const selectedClass = classSelector.options[classSelector.selectedIndex].value;
-    const studentsList = document.getElementById('studentsList');
+    const studentsList =
+        document.getElementById('studentsList');
 
     const listItem = document.createElement('li');
-    listItem.setAttribute('data-roll-number', newStudentRoll);
+    listItem.setAttribute('data-roll-number', rollNumber);
 
     listItem.innerHTML = `
-        <strong>${newStudentName}</strong> ${newStudentRoll}
+        <strong>${name}</strong> ${rollNumber}
     `;
 
-    // Create ONE toggle button
-    const toggleButton = createButton('☑️', 'present', () => {
-        const currentStatus = toggleButton.dataset.status;
+    // Initial attendance status
+    const status = 'reset';
 
-        if (currentStatus === 'reset') {
-            // Change to present
-            markAttendance('present', listItem, selectedClass);
-            toggleButton.textContent = '✅';
-            toggleButton.className = 'reset';
-            toggleButton.dataset.status = 'present';
-        } else {
-            // Change to reset
-            markAttendance('reset', listItem, selectedClass);
-            toggleButton.textContent = '☑️';
-            toggleButton.className = 'present';
-            toggleButton.dataset.status = 'reset';
+    // Apply initial UI
+    listItem.style.backgroundColor =
+        getStatusColor(status);
+
+    // Create toggle button (same behavior as showStudentsList)
+    const toggleButton = createButton(
+        '☑️',
+        'present',
+        () => {
+            const currentStatus =
+                toggleButton.dataset.status;
+            const newStatus =
+                currentStatus === 'present'
+                    ? 'reset'
+                    : 'present';
+
+            markAttendance(newStatus, listItem, selectedClass);
+
+            toggleButton.textContent =
+                newStatus === 'present' ? '✅' : '☑️';
+            toggleButton.dataset.status = newStatus;
         }
-    });
+    );
 
-    // Initial state
-    toggleButton.dataset.status = 'reset';
+    toggleButton.dataset.status = status;
 
     listItem.appendChild(toggleButton);
     studentsList.appendChild(listItem);
 
+    // Save student list
     saveStudentsList(selectedClass);
-    updateAttendanceRecord(newStudentName, selectedClass, 'reset');
+
+    // 🔑 Save attendance using rollNumber
+    updateAttendanceRecord(rollNumber, selectedClass, status);
+
     closePopup();
 }
+
 
 
 function addClass() {
@@ -511,14 +524,21 @@ function populateClasses() {
 
 function showStudentsList() {
     const classSelector = document.getElementById('classSelector');
-    const selectedClass = classSelector.options[classSelector.selectedIndex].value;
+    const selectedClass =
+        classSelector.options[classSelector.selectedIndex].value;
 
     const studentsList = document.getElementById('studentsList');
     studentsList.innerHTML = '';
 
-    // Retrieve students from local storage
-    const savedStudents = JSON.parse(localStorage.getItem('students')) || {};
-    const selectedClassStudents = savedStudents[selectedClass] || [];
+    // Load students
+    const savedStudents =
+        JSON.parse(localStorage.getItem('students')) || {};
+    const selectedClassStudents =
+        savedStudents[selectedClass] || [];
+
+    // Load attendance records ONCE
+    const attendanceData =
+        JSON.parse(localStorage.getItem('attendanceData')) || [];
 
     selectedClassStudents.forEach(student => {
         const listItem = document.createElement('li');
@@ -529,41 +549,40 @@ function showStudentsList() {
             ${student.rollNumber}
         `;
 
-        // Get saved attendance state (optional but recommended)
-        const savedColor = getSavedColor(selectedClass, student.rollNumber);
-        const initialStatus = savedColor ? 'present' : 'reset';
+        // 🔑 Get saved attendance STATUS
+        const record = attendanceData.find(
+            r =>
+                r.rollNumber === student.rollNumber &&
+                r.class === selectedClass
+        );
 
-        // Create ONE toggle button
+        const status = record ? record.status : 'reset';
+
+        // Apply saved UI state
+        listItem.style.backgroundColor = getStatusColor(status);
+
+        // Create toggle button
         const toggleButton = createButton(
-            initialStatus === 'present' ? '✅' : '☑️',
-            initialStatus === 'present' ? 'reset' : 'present',
+            status === 'present' ? '✅' : '☑️',
+            status === 'present' ? 'reset' : 'present',
             () => {
                 const currentStatus = toggleButton.dataset.status;
+                const newStatus =
+                    currentStatus === 'present' ? 'reset' : 'present';
 
-                if (currentStatus === 'reset') {
-                    markAttendance('present', listItem, selectedClass);
-                    toggleButton.textContent = '✅';
-                    toggleButton.className = 'reset';
-                    toggleButton.dataset.status = 'present';
-                } else {
-                    markAttendance('reset', listItem, selectedClass);
-                    toggleButton.textContent = '☑️';
-                    toggleButton.className = 'present';
-                    toggleButton.dataset.status = 'reset';
-                }
+                markAttendance(newStatus, listItem, selectedClass);
+
+                toggleButton.textContent =
+                    newStatus === 'present' ? '✅' : '☑️';
+                toggleButton.dataset.status = newStatus;
             }
         );
 
-        // Set initial state
-        toggleButton.dataset.status = initialStatus;
+        // Set initial status
+        toggleButton.dataset.status = status;
 
         listItem.appendChild(toggleButton);
         studentsList.appendChild(listItem);
-
-        // Restore saved color
-        if (savedColor) {
-            listItem.style.backgroundColor = savedColor;
-        }
     });
 
     // Check if attendance for the 
@@ -587,28 +606,22 @@ function showStudentsList() {
 }
 
 
-function markAttendance
-    (status, listItem, selectedClass) {
-    // Find the corresponding student name
-    const studentName = listItem.
-        querySelector('strong').innerText;
+function markAttendance(status, listItem, selectedClass) {
+    const rollNumber = listItem.getAttribute('data-roll-number');
 
-    // Update the background color of the student 
-    // row based on the attendance status
-    listItem.style.backgroundColor = 
-        getStatusColor(status);
+    // Update UI color
+    listItem.style.backgroundColor = getStatusColor(status);
 
-    // Save the background color to local storage
-    saveColor(selectedClass, 
-        listItem.getAttribute('data-roll-number'), 
-        getStatusColor(status));
+    // Save attendance STATUS (source of truth)
+    updateAttendanceRecord(rollNumber, selectedClass, status);
 
-    // Update the attendance record for the specific student
-    updateAttendanceRecord(studentName, selectedClass, status);
+    // OPTIONAL: If you still want color storage (not recommended)
+    //saveColor(selectedClass, rollNumber, getStatusColor(status));
 
-    // Show the summary for the selected class
+    // Update summary
     showSummary(selectedClass);
 }
+
 
 function getStatusColor(status) {
     switch (status) {
@@ -626,35 +639,32 @@ function getStatusColor(status) {
     }
 }
 
-function updateAttendanceRecord
-    (studentName, selectedClass, status) {
-    // Retrieve existing attendance data from local storage
-    const savedAttendanceData = JSON.parse
-        (localStorage.getItem('attendanceData')) || [];
+function updateAttendanceRecord(rollNumber, selectedClass, status) {
+    const savedAttendanceData =
+        JSON.parse(localStorage.getItem('attendanceData')) || [];
 
-    // Check if the record already exists
-    const existingRecordIndex = savedAttendanceData.
-        findIndex(record => record.name === studentName && 
-            record.class === selectedClass);
+    const existingRecordIndex = savedAttendanceData.findIndex(
+        record =>
+            record.rollNumber === rollNumber &&
+            record.class === selectedClass
+    );
 
     if (existingRecordIndex !== -1) {
-        // Update the existing record
-        savedAttendanceData[existingRecordIndex].
-            status = status;
-        savedAttendanceData[existingRecordIndex].
-            date = getCurrentDate();
+        savedAttendanceData[existingRecordIndex].status = status;
+        savedAttendanceData[existingRecordIndex].date = getCurrentDate();
     } else {
-        // Add a new record
-        savedAttendanceData.push(
-            { 
-                name: studentName, class: selectedClass, 
-                status: status, date: getCurrentDate() 
-            });
+        savedAttendanceData.push({
+            rollNumber,
+            class: selectedClass,
+            status,
+            date: getCurrentDate()
+        });
     }
 
-    // Save updated attendance data to local storage
-    localStorage.setItem('attendanceData', 
-        JSON.stringify(savedAttendanceData));
+    localStorage.setItem(
+        'attendanceData',
+        JSON.stringify(savedAttendanceData)
+    );
 }
 
 function showSummary(selectedClass) {
