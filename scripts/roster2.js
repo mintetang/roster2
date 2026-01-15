@@ -200,32 +200,40 @@ function std(a, b) {
 
 
 function addClass() {
-	//jt 0927
-	const newSession = document.
-        getElementById('session').value;
-    const tempClassName = document.
-        getElementById('newClassName').value;
-	const newClassName = `${tempClassName}-${newSession}`;
-	//console.log(newClassName); // jt 0928
+    // jt 0927
+    const newSession = document.getElementById('session').value;
+    const tempClassName = document.getElementById('newClassName').value;
+    const newClassName = `${tempClassName}-${newSession}`;
 
     if (!newClassName) {
         alert("請輸入日期.");
         return;
     }
 
-    // Add the new class to the class selector
-    const classSelector = document.
-        getElementById('classSelector');
-    const newClassOption = document.
-        createElement('option');
+    const classSelector = document.getElementById('classSelector');
+
+    // 🔴 Check if class already exists
+    const exists = Array.from(classSelector.options)
+        .some(option => option.value === newClassName);
+
+    if (exists) {
+        alert("此堂次已存在，請勿重複新增。");
+        return;
+    }
+
+    // ✅ Add the new class
+    const newClassOption = document.createElement('option');
     newClassOption.value = newClassName;
     newClassOption.text = newClassName;
+
     classSelector.add(newClassOption);
     classSelector.value = newClassName;
+
     showStudentsList();
     saveClasses();
     closePopup();
 }
+
 
 function submitAttendance() {
     const classSelector = document.
