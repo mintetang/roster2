@@ -116,6 +116,15 @@ function readOrg() {
     closePopup();
 }
 
+async function handleSubmit() {
+    const success = addClass();
+
+    // ⛔ stop immediately if addClass failed
+    if (!success) return;
+
+    await addOrg();
+}
+
 async function addOrg() {
     const requestURL =
         //"https://roster2.wasmer.app/scripts/nameroll1.json";
